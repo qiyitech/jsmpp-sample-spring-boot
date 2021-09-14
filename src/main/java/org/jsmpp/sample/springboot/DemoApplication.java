@@ -1,14 +1,5 @@
 package org.jsmpp.sample.springboot;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Locale;
-import java.util.TimeZone;
-import java.util.concurrent.Future;
-
-import org.apache.commons.lang3.RandomUtils;
 import org.jsmpp.sample.springboot.jsmpp.SmppClientService;
 import org.jsmpp.sample.springboot.jsmpp.SmppServerService;
 import org.slf4j.Logger;
@@ -27,6 +18,10 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.core.task.TaskExecutor;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+
+import java.io.IOException;
+import java.util.*;
+import java.util.concurrent.Future;
 
 @EnableAsync
 @Configuration
@@ -76,9 +71,13 @@ public class DemoApplication implements CommandLineRunner {
 
     smppServerService.start();
     final List<Future<Long>> futureList = new ArrayList<>();
-    for (int i = 0; i < NUMBER_OF_CLIENT_SESSIONS; i++) {
+    int maxClient = Integer.valueOf(args[0]);
+    maxClient = Math.min(maxClient, NUMBER_OF_CLIENT_SESSIONS);
+    int maxRequest = Integer.valueOf(args[1]);
+    for (int i = 0; i < maxClient; i++) {
       // Start client sessions asynchronously with random number of messages
-      futureList.add(smppClientService.start(RandomUtils.nextInt(MIN_MESSAGES_PER_SESSION, MAX_MESSAGES_PER_SESSION)));
+//      futureList.add(smppClientService.start(RandomUtils.nextInt(MIN_MESSAGES_PER_SESSION, MAX_MESSAGES_PER_SESSION)));
+      futureList.add(smppClientService.start(maxRequest));
     }
 
     final long futureListSize = futureList.size();

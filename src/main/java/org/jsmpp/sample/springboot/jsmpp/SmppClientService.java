@@ -1,25 +1,8 @@
 package org.jsmpp.sample.springboot.jsmpp;
 
-import java.io.IOException;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
-
 import org.jsmpp.InvalidResponseException;
 import org.jsmpp.PDUException;
-import org.jsmpp.bean.Alphabet;
-import org.jsmpp.bean.BindType;
-import org.jsmpp.bean.ESMClass;
-import org.jsmpp.bean.GeneralDataCoding;
-import org.jsmpp.bean.MessageClass;
-import org.jsmpp.bean.NumberingPlanIndicator;
-import org.jsmpp.bean.RegisteredDelivery;
-import org.jsmpp.bean.SMSCDeliveryReceipt;
-import org.jsmpp.bean.SubmitSmResp;
-import org.jsmpp.bean.TypeOfNumber;
+import org.jsmpp.bean.*;
 import org.jsmpp.extra.NegativeResponseException;
 import org.jsmpp.extra.ResponseTimeoutException;
 import org.jsmpp.sample.springboot.connection.ConnectionProperties;
@@ -30,9 +13,18 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.AsyncResult;
 import org.springframework.stereotype.Service;
+
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 
 @Service
 public class SmppClientService {
@@ -43,6 +35,17 @@ public class SmppClientService {
   private MessageReceiverListener messageReceiverListener;
   private SessionStateListener sessionStateListener;
   private Charset charset;
+
+  @Value("${sms.sourceAddress}")
+  private String sourceAddress;
+  @Value("${sms.destinationAddress}")
+  private String destinationAddress;
+  @Value("${sms.systemId}")
+  private String systemId;
+  @Value("${sms.password}")
+  private String password;
+  @Value("${sms.sleepTime}")
+  private Long sleepTime;
 
   @Autowired
   public SmppClientService(
@@ -75,7 +78,7 @@ public class SmppClientService {
     try {
       LOG.info("Connecting session with id {} on task {}", session.getId(), taskIdentifier);
       final String systemId = session.connectAndBind(host, port,
-          new BindParameter(BindType.BIND_TX, "j", "jpwd", "cp", TypeOfNumber.UNKNOWN, NumberingPlanIndicator.UNKNOWN, null));
+              new BindParameter(BindType.BIND_TX, this.systemId, password, "cp", TypeOfNumber.UNKNOWN, NumberingPlanIndicator.UNKNOWN, null));
       LOG.info("Connected session with id {} with SMSC with system id {} on task {}", session.getId(), systemId, taskIdentifier);
 
       sendMessages(session, taskIdentifier, messagesToSend);
@@ -104,7 +107,7 @@ public class SmppClientService {
             LOG.error("A message sending task was cancelled!");
             break;
           }
-          Thread.sleep(1000);
+          Thread.sleep(sleepTime);
         }
         futureList.forEach(f -> {
           try {
@@ -139,8 +142,8 @@ public class SmppClientService {
   Future<SubmitSmResp> sendMessage(final SMPPSessionCustom session, final String taskIdentifier, final int messageCount, final int messageTotal)
       throws PDUException, ResponseTimeoutException, InvalidResponseException, NegativeResponseException, IOException {
     SubmitSmResp submitSmResp = session.submitShortMessageGetResp("CMT",
-        TypeOfNumber.ABBREVIATED, NumberingPlanIndicator.UNKNOWN, "1616",
-        TypeOfNumber.INTERNATIONAL, NumberingPlanIndicator.ISDN, "628176504657",
+            TypeOfNumber.ABBREVIATED, NumberingPlanIndicator.UNKNOWN, sourceAddress,
+            TypeOfNumber.INTERNATIONAL, NumberingPlanIndicator.ISDN, destinationAddress,
         new ESMClass(), (byte) 0, (byte) 1, null, null,
         new RegisteredDelivery(SMSCDeliveryReceipt.DEFAULT), (byte) 0, new GeneralDataCoding(Alphabet.ALPHA_DEFAULT, MessageClass.CLASS1, false),
         (byte) 0,

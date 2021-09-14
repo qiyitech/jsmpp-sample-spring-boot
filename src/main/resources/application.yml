@@ -18,3 +18,10 @@ logging:
     org.jsmpp.session.SMPPSession: debug
     org.jsmpp.session.SMPPServerSession: debug
     org.jsmpp.sample.springboot: info
+
+sms:
+  systemId: j
+  password: jpwd
+  sourceAddress: 1616
+  destinationAddress: 628176504657
+  sleepTime: 1000
